@@ -281,17 +281,19 @@ aux$Colegios = Distancias(aux, "amenity", "school", min)
 aux$parques = Distancias(aux, "leisure", "park", min)
 
 #En promedio, qué tan cerca quedan los hospitales.
-aux$hospitales = Distancias()
+aux$hospitales = Distancias(aux, "amenity", "hospital", mean)
 
-#En 
+#Qué tan cerca están de una atracción turística en Bogotá
+aux$turismo = Distancias(aux, "tourism", "attraction", min)
 
+#Qué tan cerca está de un supermercado.
+aux$supermercado = Distancias(aux, "building", "supermarket", min)
 
-leaflet() %>%
-  addTiles() %>%
-  addCircles(lng = aux$lon,
-             lat = aux$lat)
-  
-vis_dat(aux)  
+#En promedio, qué tan lejos están los restaurantes.
+aux$restaurantes = Distancias(aux, "amenity", "restaurant", min)
+
+#Se exporta la base de datos.
+saveRDS(aux, paste0(path,"Stores/Propiedades_final.rds"))
   
 
 
