@@ -290,7 +290,10 @@ aux$turismo = Distancias(aux, "tourism", "attraction", min)
 aux$supermercado = Distancias(aux, "building", "supermarket", min)
 
 #En promedio, qué tan lejos están los restaurantes.
-aux$restaurantes = Distancias(aux, "amenity", "restaurant", min)
+aux$restaurantes = Distancias(aux, "amenity", "restaurant", mean)
+
+#Qué tan cerca queda el centro comercial más cercano.
+aux$mall = Distancias(aux, "shop", "mall", min)
 
 #Se exporta la base de datos.
 saveRDS(aux, paste0(path,"Stores/Propiedades_final.rds"))
