@@ -9,7 +9,7 @@
 # Preparación del ambiente ------------------------------------------------
 rm(list=ls())
 
-libraries = c("tidyverse", "skimr", "visdat", "stringr") 
+libraries = c("tidyverse", "skimr", "visdat", "stringr", "osmdata") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -217,6 +217,8 @@ Limpieza_bases = function(x){
     } 
   }
   
+  x = select(x, -par_aux)
+  
   return(x)
 }
 
@@ -228,7 +230,66 @@ aux = Limpieza_bases(aux)
 #Acá se calculará la distancia que hay entre las propiedades y distintos 
 #sitios de interés en Bogotá.
 
+#Se define una función auxiliar que nos permite calcular la distancia a un lugar 
+#de interés y distintas métricas.
+Distancias = function(x, key, value, estadistica){
+  
+  # x es el dataframe con las Propiedades.
+  # key es la lista en la cual vamos a buscar el sitio de interés.
+  # value es el sitio de interés per se.
+  # estadistica es el nombre de la métrica que le vamos a calcular en el apply
+  #a las distancias.
+  
+  #Primero creamos un data frame con las ubicaciones.
+  Ubicacion_aux = opq(bbox = getbb("Bogota Colombia")) %>%
+    add_osm_feature(key, value)
+  
+  #Lo volvemos un objeto sf.
+  Ubicacion_aux = osmdata_sf(Ubicacion_aux)
+  
+  #Nos quedamos con las variables de interés.
+  Ubicacion_aux = Ubicacion_aux$osm_polygons %>% select(osm_id, name)
+  
+  #Para calcular la distancia con el objeto de interés, calculamos los centroides.
+  center_aux = st_centroid(Ubicacion_aux, byid = T)
+  
+  #De la variable geometry, nsos quedamos con la coordenada x y la Y en variables
+  #diferentes.
+  center_aux$X = st_coordinates(center_aux)[,"X"]
+  center_aux$Y = st_coordinates(center_aux)[,"Y"]
+  
+  #Carpintería: para calcular las distancias, convertimos las coordenadas a objetos 
+  #sf, tanto para los sitios de interés como las propiedades.
+  
+  center_aux = st_as_sf(center_aux, coords = c("X", "Y"), crs = 4326) #Sitio de interés
+  Propiedades_aux = st_as_sf(x[,c("property_id", "lat", "lon")], 
+                             coords = c("lon", "lat"), crs = 4326) #Las propiedades
+  #Se calculan las distancias
+  dist_aux = st_distance(Propiedades_aux, center_aux)
+  
+  #calculamos la estadística de interés con la distancia.
+  metrica_aux = apply(dist_aux, 1, estadistica)
+  
+  return(metrica_aux)
+}
 
+#Para distintos lugares, calculamos la distancia y una métrica.
+#Distancia a la escuela más cercana
+aux$Colegios = Distancias(aux, "amenity", "school", min) 
+
+#Distancia al parque más cercano.
+aux$parques = Distancias(aux, "leisure", "park", min)
+
+#En promedio, qué tan cerca quedan los hospitales.
+aux$hospitales = Distancias()
+
+#En 
+
+
+leaflet() %>%
+  addTiles() %>%
+  addCircles(lng = aux$lon,
+             lat = aux$lat)
   
 vis_dat(aux)  
   
