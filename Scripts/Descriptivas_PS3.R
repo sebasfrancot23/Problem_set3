@@ -1,0 +1,96 @@
+###
+#
+# Programación problem set 3
+# Estadísticas descriptivas.
+#
+###
+# Plan de acción: 
+# A las variables continuas sacales las estadísticas de siempre: N, media, sd, percentiles.
+# A las categóricas hace un gráfico de barras para ver el número de datos por categoría.
+# Si hay continuas con valores atípicos, hace un histograma para analizarlos mejor.
+
+# Preparación del ambiente ------------------------------------------------
+rm(list=setdiff(ls(), c("aux")))
+
+libraries = c("ggplot2", "tidyverse", "skimr", "stargazer", "gridExtra", "ggpubr") 
+
+if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
+  install.packages(setdiff(libraries, rownames(installed.packages())))
+}
+
+invisible(sapply(libraries, require, character.only = TRUE,quietly = TRUE))
+
+#Directorio de trabajo
+path = gsub("(.+)Scripts.+","\\1",rstudioapi::getActiveDocumentContext()$path)
+
+# Análisis de missing values. ---------------------------------------------
+#Tabla con total de missings y proporción al total de datos.
+
+#Se crea una función auxiliar para calcular los missings values.
+Missings_aux = function(x){
+  aux = skim(x[,-(1:3)]) %>% select(skim_variable, n_missing)
+  aux$proporcion = round((aux$n_missing/dim(x)[1])*100,2)
+  return(aux)
+}
+
+Missings = Missings_aux(aux)
+
+#En Latex.
+stargazer(Missings, type = "latex", title = "Valores faltantes",
+          label = "Tabla_missings", summary = FALSE)
+
+saveRDS(Missings, paste0(path,"Stores/analisis_Missings_DB.rds"))
+
+# Estadísticas vars continuas ---------------------------------------------
+#Las variables continuas son.
+continuas = c("numero_cuartos", "Nper", "Ingreso_disponible", "valor_arriendo", 
+              "menores", "antiguedad_puesto_promedio", "total_Pet", "Tiempo_trabajo_hogar",
+              "total_Oc", "Edad_promedio")
+
+DB_continuas = aux[,colnames(DB) %in% continuas]
+
+#Por propósitos de hacerlo más legible vamos a mostrar el arriendo en miles.
+DB_continuas$valor_arriendo = DB_continuas$valor_arriendo/1000
+#Y el ingreso
+DB_continuas$Ingreso_disponible = DB_continuas$Ingreso_disponible/1000
+
+#Se calculan distintas estadísticas:
+#Número de observaciones que no son missing
+Observations = apply(DB_continuas, MARGIN = 2, function(x){
+  Non_missings = sum(!is.na(x))
+  return(Non_missings)
+}) 
+
+#Media
+mean_aux = round(apply(DB_continuas, MARGIN = 2, mean, na.rm = TRUE),2)
+
+#SD
+sd_aux = round(apply(DB_continuas, MARGIN = 2, sd, na.rm = TRUE),2)
+
+#Percentiles.
+percentiles = t(round(apply(DB_continuas, MARGIN = 2, quantile, na.rm = TRUE,
+                            probs = c(c(0.05, 0.25, 0.5, 0.75, 0.95))),2))
+
+#En una matriz
+Estadisticas_continuas = cbind(Observations, mean_aux, sd_aux, percentiles)
+colnames(Estadisticas_continuas) = c("No. Observaciones", "Media", "Desv. Estándar", 
+                                     "Per. 5", "Per. 25", "Per. 50", "Per. 75", 
+                                     "Per 95")
+#Hacia latex
+stargazer(Estadisticas_continuas, type = "latex", title = "Estadísticas descriptivas",
+          subtitle = "variables continuas", label = "Tabla_continuas",
+          summary = FALSE)
+
+saveRDS(Estadisticas_continuas, paste0(path,"Stores/Estadisticas_vars_continuas.rds"))
+
+
+
+
+
+
+
+
+
+
+
+

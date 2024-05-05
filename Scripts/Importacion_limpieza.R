@@ -9,7 +9,7 @@
 # Preparación del ambiente ------------------------------------------------
 rm(list=ls())
 
-libraries = c("tidyverse", "skimr", "visdat", "stringr", "osmdata") 
+libraries = c("tidyverse", "skimr", "visdat", "stringr", "osmdata", "sf") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
