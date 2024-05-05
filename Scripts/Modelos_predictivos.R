@@ -25,7 +25,6 @@ set.seed(84751309)
 
 #Se importa la base
 train_db = readRDS(paste0(path,"Stores/Propiedades_final.rds"))
-read.csv(paste0(path, "Stores/Pre_procesadas/submission_template.csv")) |> dim()
 
 #Algo de carpintería antes de empezar para completar la base.
 Carpinteria = function(x, train = T){
@@ -82,6 +81,19 @@ lm_normal_MAE = MAE(lm_normal_pred, train_db$price, na.rm= T)
 
 
 
+# MAE de los modelos. -----------------------------------------------------
+#Se guardan los MAE del precio de venta.
+
+#Para el RF toca a pie
+#aux = (Pred_aux$train_final.Ingreso_disponible-Pred_aux$Ingreso_pred_RF)^2 |>
+#  mean() |> sqrt()
+
+MAE = data.frame("Modelo" = c("Regresión"),
+                  "MAE" = c(lm_normal_MAE/1e6))
+
+
+xtable(MAE)
+saveRDS(MAE, paste0(path,"Stores/MAE_precios.rds"))
 
 
 
