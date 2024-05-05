@@ -12,7 +12,8 @@
 # Preparación del ambiente ------------------------------------------------
 rm(list=setdiff(ls(), c("aux")))
 
-libraries = c("ggplot2", "tidyverse", "skimr", "stargazer", "gridExtra", "ggpubr") 
+libraries = c("ggplot2", "tidyverse", "skimr", "stargazer", "gridExtra", "ggpubr",
+              "leaflet", "htmlwidgets") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -22,6 +23,7 @@ invisible(sapply(libraries, require, character.only = TRUE,quietly = TRUE))
 
 #Directorio de trabajo
 path = gsub("(.+)Scripts.+","\\1",rstudioapi::getActiveDocumentContext()$path)
+aux = readRDS(paste0(path,"Stores/Propiedades_final.rds"))
 
 # Análisis de missing values. ---------------------------------------------
 #Tabla con total de missings y proporción al total de datos.
@@ -43,16 +45,14 @@ saveRDS(Missings, paste0(path,"Stores/analisis_Missings_DB.rds"))
 
 # Estadísticas vars continuas ---------------------------------------------
 #Las variables continuas son.
-continuas = c("numero_cuartos", "Nper", "Ingreso_disponible", "valor_arriendo", 
-              "menores", "antiguedad_puesto_promedio", "total_Pet", "Tiempo_trabajo_hogar",
-              "total_Oc", "Edad_promedio")
+continuas = c("price", "surface_covered", "Colegios",
+              "parques", "hospitales", "turismo", "supermercado", "restaurantes",
+              "mall", "parqueaderos")
 
-DB_continuas = aux[,colnames(DB) %in% continuas]
+DB_continuas = aux[,colnames(aux) %in% continuas]
 
-#Por propósitos de hacerlo más legible vamos a mostrar el arriendo en miles.
-DB_continuas$valor_arriendo = DB_continuas$valor_arriendo/1000
-#Y el ingreso
-DB_continuas$Ingreso_disponible = DB_continuas$Ingreso_disponible/1000
+#Por propósitos de hacerlo más legible vamos a mostrar el precio en millones.
+DB_continuas$price = DB_continuas$price/1e6
 
 #Se calculan distintas estadísticas:
 #Número de observaciones que no son missing
@@ -86,11 +86,9 @@ saveRDS(Estadisticas_continuas, paste0(path,"Stores/Estadisticas_vars_continuas.
 
 # Estadísticas discretas --------------------------------------------------
 #Se seleccionan las variables discretas.
-Discretas = c("tipo_propiedad", "Pobre", "Depto", "maxEduc_hogar", "Tamaño_empresa_hogar",
-              "Afiliado_SS", "Ingreso_arriendos_pension", "Otros_ingresos", 
-              "Oficio_hogar")
+Discretas = c("property_type", "bedrooms", "bathrooms")
 
-DB_discretas = DB[,colnames(DB) %in% Discretas]
+DB_discretas = aux[,colnames(aux) %in% Discretas]
 DB_discretas = na.omit(DB_discretas)
 
 #Se hace un gráfico de barras por cada var discreta.
@@ -98,7 +96,7 @@ for (i in colnames(DB_discretas)){
  
     png(filename = paste0(path, "Views/Hist_", i, ".png"),
         width = 1464, height = 750)
-    aux = ggplot(DB_discretas, aes(x = as.factor(!!sym(i)))) +
+    graph_aux = ggplot(DB_discretas, aes(x = as.factor(!!sym(i)))) +
       geom_bar(fill = "skyblue", color = "black", alpha = 0.8, 
                width = 0.5) +
       geom_text(stat = "count", aes(label = after_stat(count)), 
@@ -113,7 +111,7 @@ for (i in colnames(DB_discretas)){
             panel.grid.major = element_blank(),  
             panel.grid.minor = element_blank(), 
             axis.line = element_line(color = "black", size = 1)) 
-    print(aux)
+    print(graph_aux)
     dev.off()
 
 }
@@ -126,8 +124,25 @@ for (i in colnames(DB_discretas)){
 #Hagamos un mapita chiquito para ver la concentración de los datos a través de 
 #Bogotá
 
+#Creamos unos códigos de color según el tipo de propiedad.
+aux = aux %>%
+  mutate(color = case_when(property_type == "Apartamento" ~ "darkorange",
+                           property_type == "Casa" ~ "lightblue"))
 
+# Para centrar el mapa 
+lat_central = mean(aux$lat)
+lon_central = mean(aux$lon)
 
+# Creamos el gráfico.
+
+mapa = leaflet() %>%
+  addTiles() %>%
+  setView(lng = lon_central, lat = lat_central, zoom = 12) %>%
+  addCircleMarkers(lng = aux$lon, lat = aux$lat, color = aux$color, 
+                   fillColor = "black",
+                   fillOpacity = 1, opacity = 1, radius = 0.0001)
+saveWidget(mapa, file = paste0(path,"Views/mapa.html")
+           , selfcontained = TRUE)
 
 
 

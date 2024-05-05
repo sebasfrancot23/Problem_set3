@@ -41,14 +41,14 @@ rm(train, test) #Para ahorrar ram
 #Se define una función auxiliar para realizar la limpieza de las bases.
 Limpieza_bases = function(x){
   
-  #Hay algunos missings en description, esos sí toca quitarlos para poder
-  #sacar información de ese string.
-  x = x[!is.na(x$description), ]
   
   #Nos quedamos con las variables de interés.
   x = x %>% select(-city, -month, -year) %>%
     filter(operation_type == "Venta") %>% #La variable property_type la volvemos factor
-    mutate(property_type = factor(property_type))
+    mutate(property_type = factor(property_type)) %>% 
+    #Para completar los missings en description
+    mutate(description = ifelse(is.na(description), "", 
+                                description))
   
   #Se completa la información de las habitaciones con la descripción de las
   #propiedades.
