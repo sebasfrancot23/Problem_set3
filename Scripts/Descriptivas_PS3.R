@@ -28,9 +28,9 @@ path = gsub("(.+)Scripts.+","\\1",rstudioapi::getActiveDocumentContext()$path)
 
 #Se crea una función auxiliar para calcular los missings values.
 Missings_aux = function(x){
-  aux = skim(x[,-(1:3)]) %>% select(skim_variable, n_missing)
-  aux$proporcion = round((aux$n_missing/dim(x)[1])*100,2)
-  return(aux)
+  x = skim(x[,-c(1,4,9:13)]) %>% select(skim_variable, n_missing)
+  x$proporcion = round((x$n_missing/dim(x)[1])*100,2)
+  return(x)
 }
 
 Missings = Missings_aux(aux)
@@ -82,6 +82,67 @@ stargazer(Estadisticas_continuas, type = "latex", title = "Estadísticas descrip
           summary = FALSE)
 
 saveRDS(Estadisticas_continuas, paste0(path,"Stores/Estadisticas_vars_continuas.rds"))
+
+
+# Estadísticas discretas --------------------------------------------------
+#Se seleccionan las variables discretas.
+Discretas = c("tipo_propiedad", "Pobre", "Depto", "maxEduc_hogar", "Tamaño_empresa_hogar",
+              "Afiliado_SS", "Ingreso_arriendos_pension", "Otros_ingresos", 
+              "Oficio_hogar")
+
+DB_discretas = DB[,colnames(DB) %in% Discretas]
+DB_discretas = na.omit(DB_discretas)
+
+#Se hace un gráfico de barras por cada var discreta.
+for (i in colnames(DB_discretas)){
+ 
+    png(filename = paste0(path, "Views/Hist_", i, ".png"),
+        width = 1464, height = 750)
+    aux = ggplot(DB_discretas, aes(x = as.factor(!!sym(i)))) +
+      geom_bar(fill = "skyblue", color = "black", alpha = 0.8, 
+               width = 0.5) +
+      geom_text(stat = "count", aes(label = after_stat(count)), 
+                vjust = -0.5) +
+      labs(title = paste0("Distribución variable ", i), 
+           y = "Conteo") +
+      theme(plot.title = element_text(hjust = 0.5, size = 15),
+            axis.title.x = element_blank(),
+            axis.title.y = element_text(size = 14),
+            axis.text.x = element_text(size = 14),
+            axis.text.y = element_blank(),
+            panel.grid.major = element_blank(),  
+            panel.grid.minor = element_blank(), 
+            axis.line = element_line(color = "black", size = 1)) 
+    print(aux)
+    dev.off()
+
+}
+
+
+
+
+# Visualización -----------------------------------------------------------
+
+#Hagamos un mapita chiquito para ver la concentración de los datos a través de 
+#Bogotá
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
