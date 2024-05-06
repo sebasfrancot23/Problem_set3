@@ -9,7 +9,7 @@
 rm(list=ls())
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
-              "rpart.plot") 
+              "rpart.plot", "sf", "spatialsample", "purrr" ) 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -78,6 +78,40 @@ lm_normal = lm(model, train_db)
 #Se calcula el MAE.
 lm_normal_pred = predict(lm_normal, newdata = train_db)
 lm_normal_MAE = MAE(lm_normal_pred, train_db$price, na.rm= T)
+
+
+# CV espacial -------------------------------------------------------------
+
+#Los siguientes modelos requerirán calibrar distintos hiperpárametros. Para ello
+#podemos recurrir al viejo conocido, CV. Pero en este caso dividiremos la muestra
+#en folds según la ubicación geográfica y las distancias para evitar la 
+#autocorrelación espacial.
+
+#Especificamos que la base es un obketo sf.
+train_db = st_as_sf(train_db, coords = c("lon", "lat"), 
+                    crs = 4326)
+
+#Creamos los folds y sus buffers correspondientes. 
+CV_bloques = spatial_block_cv(train_db, v = 5) #La dividimos en 5 folds.
+
+#Gráficamente. 
+walk(CV_bloques$splits, function(x) print(autoplot(x) + theme_bw()))
+
+
+# Red elástica ------------------------------------------------------------
+#Con la misma forma funcional anterior, vamos a aplicar una red elástica 
+#para ver si podemos mejorar las predicciones.
+
+#Primero carpintería para obtener el id de las observaciones en cada fold.
+
+CV_bloques$splits[[1]]
+
+
+
+
+
+
+
 
 
 
