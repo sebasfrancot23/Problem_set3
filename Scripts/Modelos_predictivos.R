@@ -58,12 +58,11 @@ Carpinteria = function(x, train = T){
   #Nos quedamos con las variables relevantes.
   x = x[,!grepl("media_", colnames(x))]  
   
-  
   return(x)
 }
 
 train_db = Carpinteria(x = train_db)
-
+train_db = train_db[complete.cases(train_db),]
 
 #Ahora se entrenarán distintos modelos de aprendizaje estadístico para
 # Modelo LM ---------------------------------------------------------------
@@ -92,10 +91,11 @@ train_db = st_as_sf(train_db, coords = c("lon", "lat"),
                     crs = 4326)
 
 #Creamos los folds y sus buffers correspondientes. 
-CV_bloques = spatial_block_cv(train_db, v = 5) #La dividimos en 5 folds.
+folds = 5
+CV_bloques = spatial_block_cv(train_db, v = folds) #La dividimos en 5 folds.
 
 #Gráficamente. 
-walk(CV_bloques$splits, function(x) print(autoplot(x) + theme_bw()))
+#walk(CV_bloques$splits, function(x) print(autoplot(x) + theme_bw()))
 
 
 # Red elástica ------------------------------------------------------------
@@ -103,27 +103,103 @@ walk(CV_bloques$splits, function(x) print(autoplot(x) + theme_bw()))
 #para ver si podemos mejorar las predicciones.
 
 #Primero carpintería para obtener el id de las observaciones en cada fold.
+Indices = list()
 
-CV_bloques$splits[[1]]
+#Se llena la lista con los indices de fold
+for (i in 1:folds){
+  Indices[[i]] = CV_bloques$splits[[i]]$in_id
+}
+
+#Especificamos los controles.
+control = trainControl(method = "cv", index = Indices)
+
+#Para los hiperpárametros, nos vamos a apoyar en glmnet para obtener los lambda
+
+X = model.matrix(~ surface_covered + rooms + bathrooms + property_type +
+                   parqueaderos + Colegios + parques + hospitales + turismo + 
+                   supermercado + restaurantes + mall, train_db)
+X = X[,-1]
+Y = train_db$price
+
+#Se corre la función glmnet para obtener una grilla de valores de lambda.
+aux_lambda_1 <- glmnet(
+  x = X,
+  y = Y,
+  alpha = 0
+)
+
+#Para ahorrar ram
+rm(X)
+rm(Y)
+
+#Se definen los parámetros para realizar la búsqueda del parámetro óptimo.
+
+grilla = expand.grid(alpha = seq(0,1,by = 0.25), lambda = seq(0,0.2, length.out = 3))
+                     #lambda = aux_lambda_1$lambda)
+
+#Corremos la CV
+Elastic_net = train(model, data = train_db, method = "glmnet",
+                    trControl = control, tuneGrid = grilla,
+                    metric = "MAE")
+
+#La relación entre el lambda y el alpha gráficamente:
+png(filename = paste0(path, "Views/Enet_regresion.png"),
+    width = 1464, height = 750)
+plot(Elastic_net)
+dev.off()
+
+#Los párametros óptimos.
+Parametros = Elastic_net$bestTune 
 
 
+#Las métricas del modelo óptimo.
+Enet_matrix = as.data.frame(Elastic_net$results)
+Enet_matrix = filter(Enet_matrix, alpha == Parametros[1,1] & 
+                       lambda == Parametros[1,2])
 
 
+# CART --------------------------------------------------------------------
+#Le vamos a encimar CV para encontrar el mejor valor de la poda.
+tree_cp = train(model, data = train_db,
+                method = "rpart",
+                trControl = control,
+                tuneGrid = expand.grid(cp = seq(0.01, 0.9, length.out = 2)),
+                metric = "MAE")
+
+#El mejor valor de poda.
+Poda = tree_cp$bestTune$cp
+
+#Para obtener el MAE con el mejor parámetro.
+MAE_tree = tree_cp$results[tree_cp$results$cp==Poda, "MAE"]
 
 
+# Random forest -----------------------------------------------------------
+#En RF nos interesarán dos párametros: qué tan profundo haremos el árbol y 
+#el número de variables aleatorias que puede escoger en cada división del árbol.
+
+#Esa búsqueda la específicamos en la grilla
+Grilla = expand.grid( mtry = c(2:6),
+  splitrule = "variance",
+  min.node.size = seq(1000,10000, length.out = 1))
 
 
+RF_CV = train(model, data=train_db, method = "ranger", trControl = control,
+  tuneGrid=Grilla, ntree = 200, metric = "MAE")
 
+#Se guarda la métrica del MAE para los hiperpárametros óptimos.
+MAE_RF = RF_CV$results[which.min(RF_CV$results$MAE),"MAE"]
 
-# MAE de los modelos. -----------------------------------------------------
+# MAE e hiperpárametros óptimos. -----------------------------------------------------
 #Se guardan los MAE del precio de venta.
 
 #Para el RF toca a pie
 #aux = (Pred_aux$train_final.Ingreso_disponible-Pred_aux$Ingreso_pred_RF)^2 |>
 #  mean() |> sqrt()
 
-MAE = data.frame("Modelo" = c("Regresión"),
-                  "MAE" = c(lm_normal_MAE/1e6))
+MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF"),
+                  "MAE" = c(lm_normal_MAE/1e6, 
+                            Enet_matrix[1,"MAE"], 
+                            MAE_tree, MA_RF))
 
 
 xtable(MAE)
@@ -131,7 +207,16 @@ saveRDS(MAE, paste0(path,"Stores/MAE_precios.rds"))
 
 
 
+Hiperparametros = data.frame("Modelo" = c("Enet","Árbol_CP", "RF_CV"),
+                             "Alpha" = c(Parametros[1,"alpha"], 
+                                         Poda, NA),
+                             "Lambda" = c(Parametros[1,"lambda"], NA, NA),
+                             "mtry" = c(NA, NA, RF_CV$bestTune[1,"mtry"]),
+                             "min.node.size" = c(NA, NA, RF_CV$bestTune[1,"min.node.size"])
+)
 
+xtable(Hiperparametros)
+saveRDS(Hiperparametros, paste0(path,"Stores/Hiperparametros.rds"))
 
 
 

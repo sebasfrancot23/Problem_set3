@@ -6,7 +6,8 @@
 ###
 
 # Preparación del ambiente ------------------------------------------------
-rm(list=setdiff(ls(), c("lm_normal", "Carpinteria")))
+rm(list=setdiff(ls(), c("lm_normal", "Carpinteria", "Elastic_net", "tree_cp",
+                        "RF_CV")))
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
               "rpart.plot") 
@@ -44,7 +45,27 @@ Predicciones = data.frame("property_id" = test_db$property_id,
 write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_lm.csv"),
           row.names = F, sep = ",")
 
-vis_dat(test_db)
+#Para la red elástica.
+Predicciones = data.frame("property_id" = test_db$property_id,
+                          "price" = predict(Elastic_net, newdata = test_db))
+#Se exportan al CSV.
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_Enet.csv"),
+          row.names = F, sep = ",")
+
+#Para el árbol.
+Predicciones = data.frame("property_id" = test_db$property_id,
+                          "price" = predict(tree_cp, newdata = test_db))
+#Se exportan al CSV.
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_tree_cp.csv"),
+          row.names = F, sep = ",")
+
+#El Random forest
+Predicciones = data.frame("property_id" = test_db$property_id,
+                          "price" = predict(RF_CV, newdata = test_db))
+#Se exportan al CSV.
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_RF.csv"),
+          row.names = F, sep = ",")
+
 
 
 
