@@ -9,7 +9,7 @@
 rm(list=ls())
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
-              "rpart.plot", "sf", "spatialsample", "purrr" ) 
+              "rpart.plot", "sf", "spatialsample", "purrr") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -25,6 +25,7 @@ set.seed(84751309)
 
 #Se importa la base
 train_db = readRDS(paste0(path,"Stores/Propiedades_final.rds"))
+#train_db = read.csv(paste0(path, "Stores/Pre_procesadas/train.csv"))
 
 #Algo de carpintería antes de empezar para completar la base.
 Carpinteria = function(x, train = T){
@@ -94,15 +95,13 @@ train_db = st_as_sf(train_db, coords = c("lon", "lat"),
 folds = 5
 CV_bloques = spatial_block_cv(train_db, v = folds) #La dividimos en 5 folds.
 
-#Gráficamente. 
-#walk(CV_bloques$splits, function(x) print(autoplot(x) + theme_bw()))
+#Gráficamente.
+png(filename = paste0(path, "Views/CV_espacial.png"),
+    width = 1464, height = 750)
+autoplot(CV_bloques$splits[[1]]) + theme_bw()
+dev.off()
 
-
-# Red elástica ------------------------------------------------------------
-#Con la misma forma funcional anterior, vamos a aplicar una red elástica 
-#para ver si podemos mejorar las predicciones.
-
-#Primero carpintería para obtener el id de las observaciones en cada fold.
+#Carpintería para obtener el id de las observaciones en cada fold.
 Indices = list()
 
 #Se llena la lista con los indices de fold
@@ -112,6 +111,10 @@ for (i in 1:folds){
 
 #Especificamos los controles.
 control = trainControl(method = "cv", index = Indices)
+
+# Red elástica ------------------------------------------------------------
+#Con la misma forma funcional anterior, vamos a aplicar una red elástica 
+#para ver si podemos mejorar las predicciones.
 
 #Para los hiperpárametros, nos vamos a apoyar en glmnet para obtener los lambda
 
@@ -134,8 +137,8 @@ rm(Y)
 
 #Se definen los parámetros para realizar la búsqueda del parámetro óptimo.
 
-grilla = expand.grid(alpha = seq(0,1,by = 0.25), lambda = seq(0,0.2, length.out = 3))
-                     #lambda = aux_lambda_1$lambda)
+grilla = expand.grid(alpha = seq(0,1,by = 0.25),
+                     lambda = aux_lambda_1$lambda)
 
 #Corremos la CV
 Elastic_net = train(model, data = train_db, method = "glmnet",
@@ -163,7 +166,7 @@ Enet_matrix = filter(Enet_matrix, alpha == Parametros[1,1] &
 tree_cp = train(model, data = train_db,
                 method = "rpart",
                 trControl = control,
-                tuneGrid = expand.grid(cp = seq(0.01, 0.9, length.out = 2)),
+                tuneGrid = expand.grid(cp = seq(0.001, 0.9, length.out = 50)),
                 metric = "MAE")
 
 #El mejor valor de poda.
@@ -178,9 +181,9 @@ MAE_tree = tree_cp$results[tree_cp$results$cp==Poda, "MAE"]
 #el número de variables aleatorias que puede escoger en cada división del árbol.
 
 #Esa búsqueda la específicamos en la grilla
-Grilla = expand.grid( mtry = c(2:6),
+Grilla = expand.grid( mtry = c(4:7),
   splitrule = "variance",
-  min.node.size = seq(1000,10000, length.out = 1))
+  min.node.size = seq(100,1000, length.out = 10))
 
 
 RF_CV = train(model, data=train_db, method = "ranger", trControl = control,
@@ -188,6 +191,31 @@ RF_CV = train(model, data=train_db, method = "ranger", trControl = control,
 
 #Se guarda la métrica del MAE para los hiperpárametros óptimos.
 MAE_RF = RF_CV$results[which.min(RF_CV$results$MAE),"MAE"]
+
+
+# Boosting ----------------------------------------------------------------
+
+#Se define una grilla para probar cuál de las combinaciones de hiperpárametros
+#otorga la mejor estimación en términos del MAE
+Grilla_boost = expand.grid(n.trees= c(200,300,400), #O el número de aprendizajes de 
+                           #boosting (cuántos árboles va a estimar)
+                           interaction.depth = c(7:10), #Qué tan profundo serán los
+                           #árboles que se estimarán en cada iteración. 
+                           shrinkage = 0.01, #Qué tanto vamos a relantizar el
+                           #aprendizaje.
+                           n.minobsinnode = c(1000) #Cuántas observaciones debe 
+                           #tener un nodo para volverse final.
+)
+
+Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
+                    tuneGrid = Grilla_boost, verbose = F, metric = "MAE")
+
+
+
+
+
+
+
 
 # MAE e hiperpárametros óptimos. -----------------------------------------------------
 #Se guardan los MAE del precio de venta.
