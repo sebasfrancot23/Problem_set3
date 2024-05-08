@@ -66,7 +66,12 @@ Predicciones = data.frame("property_id" = test_db$property_id,
 write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_RF.csv"),
           row.names = F, sep = ",")
 
-
+#Para el boosting.
+Predicciones = data.frame("property_id" = test_db$property_id,
+                          "price" = predict(Arbol_boost, newdata = test_db))
+#Se exportan al CSV.
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_RF.csv"),
+          row.names = F, sep = ",")
 
 
 

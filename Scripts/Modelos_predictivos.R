@@ -197,13 +197,13 @@ MAE_RF = RF_CV$results[which.min(RF_CV$results$MAE),"MAE"]
 
 #Se define una grilla para probar cuál de las combinaciones de hiperpárametros
 #otorga la mejor estimación en términos del MAE
-Grilla_boost = expand.grid(n.trees= c(200,300,400), #O el número de aprendizajes de 
+Grilla_boost = expand.grid(n.trees= seq(300,1000, length.out = 6), #O el número de aprendizajes de 
                            #boosting (cuántos árboles va a estimar)
-                           interaction.depth = c(7:10), #Qué tan profundo serán los
+                           interaction.depth = c(10:15), #Qué tan profundo serán los
                            #árboles que se estimarán en cada iteración. 
                            shrinkage = 0.01, #Qué tanto vamos a relantizar el
                            #aprendizaje.
-                           n.minobsinnode = c(1000) #Cuántas observaciones debe 
+                           n.minobsinnode = seq(100,1000, length.out = 10) #Cuántas observaciones debe 
                            #tener un nodo para volverse final.
 )
 
@@ -211,7 +211,8 @@ Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
                     tuneGrid = Grilla_boost, verbose = F, metric = "MAE")
 
 
-
+#El MAE del boosting. 
+MAE_boost = Arbol_boost$results[which.min(Arbol_boost$results$MAE),"MAE"]
 
 
 
@@ -224,10 +225,10 @@ Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
 #aux = (Pred_aux$train_final.Ingreso_disponible-Pred_aux$Ingreso_pred_RF)^2 |>
 #  mean() |> sqrt()
 
-MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF"),
+MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF", "Boosting"),
                   "MAE" = c(lm_normal_MAE/1e6, 
                             Enet_matrix[1,"MAE"], 
-                            MAE_tree, MA_RF))
+                            MAE_tree, MAE_RF, MAE_boost))
 
 
 xtable(MAE)
@@ -246,7 +247,9 @@ Hiperparametros = data.frame("Modelo" = c("Enet","Árbol_CP", "RF_CV"),
 xtable(Hiperparametros)
 saveRDS(Hiperparametros, paste0(path,"Stores/Hiperparametros.rds"))
 
-
+#Por simplicidad para el latex mando los del boosting aparte.
+Boosting = data.frame(Arbol_boost$bestTune)
+saveRDS(Boosting, paste0(path,"Stores/Hiperparametros_boosting.rds"))
 
 
 
