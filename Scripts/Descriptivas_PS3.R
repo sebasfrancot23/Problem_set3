@@ -156,12 +156,12 @@ aux = st_as_sf(aux, coords = c("lon", "lat"), crs = 4626)
 #sumapaz, eso es un páramo, qué casas va a tener). Me quedo con algunos
 #poligonos entonces.
 
-poligonos = poligonos[-c(9,14,15),] #Quité Usme, sumapaz y Ciudad Bolivar.
+poligonos_aux = poligonos[-c(9,14,15),] #Quité Usme, sumapaz y Ciudad Bolivar.
 
 png(filename = paste0(path, "Views/Poligonos.png"),
     width = 1464, height = 750)
 ggplot() +
-  geom_sf(data = poligonos) +
+  geom_sf(data = poligonos_aux) +
   geom_sf(data = aux, aes(color = property_type)) +
   labs(color = "Tipo de propiedad") +
   theme(panel.background = element_blank(),
