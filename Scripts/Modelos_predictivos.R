@@ -96,9 +96,16 @@ folds = 5
 CV_bloques = spatial_block_cv(train_db, v = folds) #La dividimos en 5 folds.
 
 #Gráficamente.
-png(filename = paste0(path, "Views/CV_espacial.png"),
+#Primer fold
+png(filename = paste0(path, "Views/CV_espacial_1.png"),
     width = 1464, height = 750)
 autoplot(CV_bloques$splits[[1]]) + theme_bw()
+dev.off()
+
+#Segundo fold
+png(filename = paste0(path, "Views/CV_espacial_2.png"),
+    width = 1464, height = 750)
+autoplot(CV_bloques$splits[[2]]) + theme_bw()
 dev.off()
 
 #Carpintería para obtener el id de las observaciones en cada fold.
