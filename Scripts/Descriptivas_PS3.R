@@ -13,7 +13,7 @@
 rm(list=setdiff(ls(), c("aux")))
 
 libraries = c("ggplot2", "tidyverse", "skimr", "stargazer", "gridExtra", "ggpubr",
-              "leaflet", "htmlwidgets") 
+              "leaflet", "htmlwidgets", "sf") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -133,7 +133,7 @@ aux = aux %>%
 lat_central = mean(aux$lat)
 lon_central = mean(aux$lon)
 
-# Creamos el gráfico.
+# Creamos el gráfico con openstreetmap.
 
 mapa = leaflet() %>%
   addTiles() %>%
@@ -144,11 +144,33 @@ mapa = leaflet() %>%
 saveWidget(mapa, file = paste0(path,"Views/mapa.html")
            , selfcontained = TRUE)
 
+#Ahora apoyenemos en las localidades
+#Los polígonos de las localidades.
+poligonos = st_read(paste0(path, "Stores/loca.json"))
 
+#Los transformamos a un archivo st.
+poligonos = st_transform(poligonos)
+aux = st_as_sf(aux, coords = c("lon", "lat"), crs = 4626)
 
+#Antes del gráfico, hay algunos poligonos que no tienen propiedades (como 
+#sumapaz, eso es un páramo, qué casas va a tener). Me quedo con algunos
+#poligonos entonces.
 
+poligonos = poligonos[-c(9,14,15),] #Quité Usme, sumapaz y Ciudad Bolivar.
 
-
+png(filename = paste0(path, "Views/Poligonos.png"),
+    width = 1464, height = 750)
+ggplot() +
+  geom_sf(data = poligonos) +
+  geom_sf(data = aux, aes(color = property_type)) +
+  labs(color = "Tipo de propiedad") +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line(color = "black"),
+        legend.key = element_rect(fill = "gray", color = "black"))
+dev.off()
 
 
 
