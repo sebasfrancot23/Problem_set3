@@ -33,7 +33,9 @@ test_db = test_db %>% mutate(surface_covered =
   mutate(parqueaderos = ifelse(is.na(parqueaderos), mean(parqueaderos, na.rm = T),
                                parqueaderos)) %>%
   mutate(bathrooms = ifelse(is.na(bathrooms), mean(bathrooms, na.rm = T),
-                            bathrooms))
+                            bathrooms)) %>%
+  mutate(rooms = ifelse(is.na(rooms), mean(rooms, na.rm = T),
+                        rooms))
 
 #Realizamos las predicciones con los datos de validación para cada modelo.
 

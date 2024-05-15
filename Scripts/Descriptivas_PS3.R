@@ -93,7 +93,28 @@ DB_discretas = na.omit(DB_discretas)
 
 #Se hace un gráfico de barras por cada var discreta.
 for (i in colnames(DB_discretas)){
- 
+  
+  if (i=="Localidad"){
+    png(filename = paste0(path, "Views/Hist_", i, ".png"),
+        width = 1464, height = 750)
+    graph_aux = ggplot(DB_discretas, aes(x = as.factor(!!sym(i)))) +
+      geom_bar(fill = "skyblue", color = "black", alpha = 0.8, 
+               width = 0.5) +
+      geom_text(stat = "count", aes(label = after_stat(count)), 
+                vjust = -0.5) +
+      labs(title = paste0("Distribución variable ", i), 
+           y = "Conteo") +
+      theme(plot.title = element_text(hjust = 0.5, size = 15),
+            axis.title.x = element_blank(),
+            axis.title.y = element_text(size = 14),
+            axis.text.x = element_text(angle = 90, size = 14),
+            axis.text.y = element_blank(),
+            panel.grid.major = element_blank(),  
+            panel.grid.minor = element_blank(), 
+            axis.line = element_line(color = "black", size = 1)) 
+    print(graph_aux)
+    dev.off()
+  } else {
     png(filename = paste0(path, "Views/Hist_", i, ".png"),
         width = 1464, height = 750)
     graph_aux = ggplot(DB_discretas, aes(x = as.factor(!!sym(i)))) +
@@ -113,7 +134,7 @@ for (i in colnames(DB_discretas)){
             axis.line = element_line(color = "black", size = 1)) 
     print(graph_aux)
     dev.off()
-
+  }
 }
 
 

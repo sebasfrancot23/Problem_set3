@@ -40,7 +40,7 @@ Carpinteria = function(x, train = T){
   #Hay algunas variables que son missings todavía, las vamos a imputar por el 
   #promedio de la variable entre cada grupo (tipo_propiedad, bedrooms)
   
-  x = x %>% group_by(bedrooms, property_type) %>%
+  x = x %>% group_by(bedrooms, property_type, Localidad) %>%
     #Se calculan las medias auxiliares.
     mutate(media_rooms = mean(rooms, na.rm = T)) %>%
     mutate(media_surface = mean(surface_covered, na.rm = T)) %>%
@@ -59,18 +59,21 @@ Carpinteria = function(x, train = T){
   #Nos quedamos con las variables relevantes.
   x = x[,!grepl("media_", colnames(x))]  
   
+  #El dataframe sigue siendo sf, ya no necesitamos esa cualidad.
+  #x = st_drop_geometry(x)
+  
   return(x)
 }
 
 train_db = Carpinteria(x = train_db)
-train_db = train_db[complete.cases(train_db),]
+train_db = na.omit(train_db)
 
 #Ahora se entrenarán distintos modelos de aprendizaje estadístico.
 # Modelo LM ---------------------------------------------------------------
 #Por simplicidad se define la ecuación en una variable.
 model = price ~ surface_covered + rooms + bathrooms + property_type +
   parqueaderos + Colegios + parques + hospitales + turismo + supermercado +
-  restaurantes + mall
+  restaurantes + mall + Localidad
 
 #Se estima el modelo de regresión.
 lm_normal = lm(model, train_db)
@@ -88,24 +91,17 @@ lm_normal_MAE = MAE(lm_normal_pred, train_db$price, na.rm= T)
 #autocorrelación espacial.
 
 #Especificamos que la base es un obketo sf.
-train_db = st_as_sf(train_db, coords = c("lon", "lat"), 
-                    crs = 4326)
+# train_db = st_as_sf(train_db, coords = c("lon", "lat"), 
+#                     crs = 4626)
 
 #Creamos los folds y sus buffers correspondientes. 
 folds = 5
 CV_bloques = spatial_block_cv(train_db, v = folds) #La dividimos en 5 folds.
 
-#Gráficamente.
-#Primer fold
-png(filename = paste0(path, "Views/CV_espacial_1.png"),
+#Gráficamente los folds
+png(filename = paste0(path, "Views/CV_espacial.png"),
     width = 1464, height = 750)
-autoplot(CV_bloques$splits[[1]]) + theme_bw()
-dev.off()
-
-#Segundo fold
-png(filename = paste0(path, "Views/CV_espacial_2.png"),
-    width = 1464, height = 750)
-autoplot(CV_bloques$splits[[2]]) + theme_bw()
+autoplot(CV_bloques)
 dev.off()
 
 #Carpintería para obtener el id de las observaciones en cada fold.
