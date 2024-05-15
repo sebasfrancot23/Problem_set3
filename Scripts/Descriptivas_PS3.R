@@ -10,7 +10,7 @@
 # Si hay continuas con valores atípicos, hace un histograma para analizarlos mejor.
 
 # Preparación del ambiente ------------------------------------------------
-rm(list=setdiff(ls(), c("aux")))
+rm(list=setdiff(ls(), c("aux", "poligonos")))
 
 libraries = c("ggplot2", "tidyverse", "skimr", "stargazer", "gridExtra", "ggpubr",
               "leaflet", "htmlwidgets", "sf") 
@@ -49,7 +49,7 @@ continuas = c("price", "surface_covered", "Colegios",
               "parques", "hospitales", "turismo", "supermercado", "restaurantes",
               "mall", "parqueaderos")
 
-DB_continuas = aux[,colnames(aux) %in% continuas]
+DB_continuas = st_drop_geometry(aux[,colnames(aux) %in% continuas])
 
 #Por propósitos de hacerlo más legible vamos a mostrar el precio en millones.
 DB_continuas$price = DB_continuas$price/1e6
@@ -86,9 +86,9 @@ saveRDS(Estadisticas_continuas, paste0(path,"Stores/Estadisticas_vars_continuas.
 
 # Estadísticas discretas --------------------------------------------------
 #Se seleccionan las variables discretas.
-Discretas = c("property_type", "bedrooms", "bathrooms")
+Discretas = c("property_type", "bedrooms", "bathrooms", "Localidad")
 
-DB_discretas = aux[,colnames(aux) %in% Discretas]
+DB_discretas = st_drop_geometry(aux[,colnames(aux) %in% Discretas])
 DB_discretas = na.omit(DB_discretas)
 
 #Se hace un gráfico de barras por cada var discreta.
@@ -129,29 +129,22 @@ aux = aux %>%
   mutate(color = case_when(property_type == "Apartamento" ~ "darkorange",
                            property_type == "Casa" ~ "lightblue"))
 
-# Para centrar el mapa 
-lat_central = mean(aux$lat)
-lon_central = mean(aux$lon)
-
-# Creamos el gráfico con openstreetmap.
-
-mapa = leaflet() %>%
-  addTiles() %>%
-  setView(lng = lon_central, lat = lat_central, zoom = 12) %>%
-  addCircleMarkers(lng = aux$lon, lat = aux$lat, color = aux$color, 
-                   fillColor = "black",
-                   fillOpacity = 1, opacity = 1, radius = 0.0001)
-saveWidget(mapa, file = paste0(path,"Views/mapa.html")
-           , selfcontained = TRUE)
+# # Para centrar el mapa 
+# lat_central = mean(aux$lat)
+# lon_central = mean(aux$lon)
+# 
+# # Creamos el gráfico con openstreetmap.
+# 
+# mapa = leaflet() %>%
+#   addTiles() %>%
+#   setView(lng = lon_central, lat = lat_central, zoom = 12) %>%
+#   addCircleMarkers(lng = aux$lon, lat = aux$lat, color = aux$color, 
+#                    fillColor = "black",
+#                    fillOpacity = 1, opacity = 1, radius = 0.0001)
+# saveWidget(mapa, file = paste0(path,"Views/mapa.html")
+#            , selfcontained = TRUE)
 
 #Ahora apoyenemos en las localidades
-#Los polígonos de las localidades.
-poligonos = st_read(paste0(path, "Stores/loca.json"))
-
-#Los transformamos a un archivo st.
-poligonos = st_transform(poligonos)
-aux = st_as_sf(aux, coords = c("lon", "lat"), crs = 4626)
-
 #Antes del gráfico, hay algunos poligonos que no tienen propiedades (como 
 #sumapaz, eso es un páramo, qué casas va a tener). Me quedo con algunos
 #poligonos entonces.

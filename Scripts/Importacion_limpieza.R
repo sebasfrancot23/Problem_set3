@@ -295,6 +295,30 @@ aux$restaurantes = Distancias(aux, "amenity", "restaurant", mean)
 #Qué tan cerca queda el centro comercial más cercano.
 aux$mall = Distancias(aux, "shop", "mall", min)
 
+
+# Ubicación de los hogares. -----------------------------------------------
+
+#Con base en la información de poligonos de Bogotá (o sea las localidades)
+#determinamos en qué localidad se encuentra cada casa.
+
+#Primero importamos los poligonos. Los obtuvimos de los datos abiertos de Bogotá
+poligonos = st_read(paste0(path, "Stores/loca.json"))
+
+#Los transformamos a un archivo st. Toca asegurarse que el crs sea el mismo.
+poligonos = st_transform(poligonos, crs = 4626)
+aux = st_as_sf(aux, coords = c("lon", "lat"), crs = 4626)
+
+#Ahora sí, con base en los poligonos y las coordenadas miramos en qué localidad
+#está cada propiedad.
+aux = st_join(aux, poligonos, join = st_within) #La clave está en la opción.
+
+#Nos quedamos con las variables relevantes.
+aux = aux[,-c(20,22,23,24,25,26)]
+
+#Carpinteria.
+colnames(aux)[20] = "Localidad"
+aux$Localidad = as.factor(aux$Localidad)
+  
 #Se exporta la base de datos.
 saveRDS(aux, paste0(path,"Stores/Propiedades_final.rds"))
   

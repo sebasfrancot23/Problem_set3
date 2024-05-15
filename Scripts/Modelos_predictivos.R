@@ -65,7 +65,7 @@ Carpinteria = function(x, train = T){
 train_db = Carpinteria(x = train_db)
 train_db = train_db[complete.cases(train_db),]
 
-#Ahora se entrenarán distintos modelos de aprendizaje estadístico para
+#Ahora se entrenarán distintos modelos de aprendizaje estadístico.
 # Modelo LM ---------------------------------------------------------------
 #Por simplicidad se define la ecuación en una variable.
 model = price ~ surface_covered + rooms + bathrooms + property_type +
