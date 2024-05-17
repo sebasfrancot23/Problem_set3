@@ -45,9 +45,9 @@ saveRDS(Missings, paste0(path,"Stores/analisis_Missings_DB.rds"))
 
 # Estadísticas vars continuas ---------------------------------------------
 #Las variables continuas son.
-continuas = c("price", "surface_covered", "Colegios",
+continuas = c("price", "surface_covered", "parqueaderos",
               "parques", "hospitales", "turismo", "supermercado", "restaurantes",
-              "mall", "parqueaderos")
+              "mall", "Colegios")
 
 DB_continuas = st_drop_geometry(aux[,colnames(aux) %in% continuas])
 

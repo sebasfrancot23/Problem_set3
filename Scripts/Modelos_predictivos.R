@@ -200,34 +200,22 @@ MAE_RF = RF_CV$results[which.min(RF_CV$results$MAE),"MAE"]
 
 #Se define una grilla para probar cuál de las combinaciones de hiperpárametros
 #otorga la mejor estimación en términos del MAE
-# Grilla_boost = expand.grid(n.trees= seq(300,1000, length.out = 6), #O el número de aprendizajes de 
-#                            #boosting (cuántos árboles va a estimar)
-#                            interaction.depth = c(10:15), #Qué tan profundo serán los
-#                            #árboles que se estimarán en cada iteración. 
-#                            shrinkage = 0.01, #Qué tanto vamos a relantizar el
-#                            #aprendizaje.
-#                            n.minobsinnode = seq(100,1000, length.out = 5) #Cuántas observaciones debe 
-#                            #tener un nodo para volverse final.
-# )
-
-
-Grilla_boost = expand.grid(n.trees= seq(1000,1500, length.out = 6), #O el número de aprendizajes de 
+Grilla_boost = expand.grid(n.trees= seq(1000,1500, length.out = 6), #O el número de aprendizajes de
                            #boosting (cuántos árboles va a estimar)
                            interaction.depth = c(15:17), #Qué tan profundo serán los
-                           #árboles que se estimarán en cada iteración. 
+                           #árboles que se estimarán en cada iteración.
                            shrinkage = 0.01, #Qué tanto vamos a relantizar el
                            #aprendizaje.
-                           n.minobsinnode = 100 #Cuántas observaciones debe 
+                           n.minobsinnode = seq(100,1000, length.out = 5) #Cuántas observaciones debe
                            #tener un nodo para volverse final.
 )
+
 
 Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
                     tuneGrid = Grilla_boost, verbose = F, metric = "MAE")
 
-
 #El MAE del boosting. 
 MAE_boost = Arbol_boost$results[which.min(Arbol_boost$results$MAE),"MAE"]
-
 
 # MAE e hiperpárametros óptimos. -----------------------------------------------------
 #Se guardan los MAE del precio de venta.
