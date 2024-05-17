@@ -206,7 +206,7 @@ Grilla_boost = expand.grid(n.trees= seq(300,1000, length.out = 6), #O el número
                            #árboles que se estimarán en cada iteración. 
                            shrinkage = 0.01, #Qué tanto vamos a relantizar el
                            #aprendizaje.
-                           n.minobsinnode = seq(100,1000, length.out = 10) #Cuántas observaciones debe 
+                           n.minobsinnode = seq(100,1000, length.out = 5) #Cuántas observaciones debe 
                            #tener un nodo para volverse final.
 )
 
@@ -218,9 +218,6 @@ Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
 MAE_boost = Arbol_boost$results[which.min(Arbol_boost$results$MAE),"MAE"]
 
 
-
-
-
 # MAE e hiperpárametros óptimos. -----------------------------------------------------
 #Se guardan los MAE del precio de venta.
 
@@ -228,10 +225,10 @@ MAE_boost = Arbol_boost$results[which.min(Arbol_boost$results$MAE),"MAE"]
 #aux = (Pred_aux$train_final.Ingreso_disponible-Pred_aux$Ingreso_pred_RF)^2 |>
 #  mean() |> sqrt()
 
-MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF", "Boosting"),
+MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF"),
                   "MAE" = c(lm_normal_MAE/1e6, 
                             Enet_matrix[1,"MAE"], 
-                            MAE_tree, MAE_RF, MAE_boost))
+                            MAE_tree, MAE_RF))
 
 
 xtable(MAE)

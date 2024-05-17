@@ -30,9 +30,9 @@ aux = readRDS(paste0(path,"Stores/Propiedades_final.rds"))
 
 #Se crea una función auxiliar para calcular los missings values.
 Missings_aux = function(x){
-  x = skim(x[,-c(1,4,9:13)]) %>% select(skim_variable, n_missing)
-  x$proporcion = round((x$n_missing/dim(x)[1])*100,2)
-  return(x)
+  y = skim(x[,-c(1,9:11,20,21)]) %>% select(skim_variable, n_missing)
+  y$proporcion = round((y$n_missing/dim(x)[1]*100),2)
+  return(y)
 }
 
 Missings = Missings_aux(aux)
@@ -72,8 +72,9 @@ percentiles = t(round(apply(DB_continuas, MARGIN = 2, quantile, na.rm = TRUE,
                             probs = c(c(0.05, 0.25, 0.5, 0.75, 0.95))),2))
 
 #En una matriz
-Estadisticas_continuas = cbind(Observations, mean_aux, sd_aux, percentiles)
-colnames(Estadisticas_continuas) = c("No. Observaciones", "Media", "Desv. Estándar", 
+Estadisticas_continuas = cbind(continuas, Observations, mean_aux, sd_aux, percentiles)
+
+colnames(Estadisticas_continuas) = c("Nombre","No. Observaciones", "Media", "Desv. Estándar", 
                                      "Per. 5", "Per. 25", "Per. 50", "Per. 75", 
                                      "Per 95")
 #Hacia latex

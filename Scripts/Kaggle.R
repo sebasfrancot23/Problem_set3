@@ -7,7 +7,7 @@
 
 # Preparación del ambiente ------------------------------------------------
 rm(list=setdiff(ls(), c("lm_normal", "Carpinteria", "Elastic_net", "tree_cp",
-                        "RF_CV")))
+                        "RF_CV", "Arbol_boost")))
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
               "rpart.plot") 
@@ -72,7 +72,7 @@ write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_RF.csv"),
 Predicciones = data.frame("property_id" = test_db$property_id,
                           "price" = predict(Arbol_boost, newdata = test_db))
 #Se exportan al CSV.
-write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_RF.csv"),
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_boosting.csv"),
           row.names = F, sep = ",")
 
 
