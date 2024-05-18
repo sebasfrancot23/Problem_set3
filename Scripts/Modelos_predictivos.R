@@ -200,7 +200,7 @@ MAE_RF = RF_CV$results[which.min(RF_CV$results$MAE),"MAE"]
 
 #Se define una grilla para probar cuál de las combinaciones de hiperpárametros
 #otorga la mejor estimación en términos del MAE
-Grilla_boost = expand.grid(n.trees= seq(1000,1500, length.out = 6), #O el número de aprendizajes de
+Grilla_boost = expand.grid(n.trees= seq(1500,2000, length.out = 6), #O el número de aprendizajes de
                            #boosting (cuántos árboles va a estimar)
                            interaction.depth = c(15:17), #Qué tan profundo serán los
                            #árboles que se estimarán en cada iteración.
@@ -209,7 +209,6 @@ Grilla_boost = expand.grid(n.trees= seq(1000,1500, length.out = 6), #O el númer
                            n.minobsinnode = seq(100,1000, length.out = 5) #Cuántas observaciones debe
                            #tener un nodo para volverse final.
 )
-
 
 Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
                     tuneGrid = Grilla_boost, verbose = F, metric = "MAE")
