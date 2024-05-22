@@ -9,7 +9,7 @@
 rm(list=ls())
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
-              "rpart.plot", "sf", "spatialsample", "purrr") 
+              "rpart.plot", "sf", "spatialsample", "purrr", "nnet", "tidymodels") 
 
 if(length(setdiff(libraries, rownames(installed.packages()))) > 0){
   install.packages(setdiff(libraries, rownames(installed.packages())))
@@ -216,17 +216,56 @@ Arbol_boost = train(model, data = train_db, method = "gbm", trControl = control,
 #El MAE del boosting. 
 MAE_boost = Arbol_boost$results[which.min(Arbol_boost$results$MAE),"MAE"]
 
+
+# Redes neuronales. -------------------------------------------------------
+
+#Acá va a cambiar que no vamos a usar caret para tunear los hiperpárametros, sino
+#que nos apoyaremos en tune_grid. Eso necesita que especifiquemos un workflow
+#que contenga la receta y el tune del nnet
+
+#Primero la receta.
+train_db = st_drop_geometry(train_db) #No necesito el geometry.
+Receta = recipe(model, data = train_db[,-c(1,5,8,9,10,11)])
+
+#Ahora especificamos qué hiperpárametros vamos a tunear.
+Tuning = mlp(hidden_units = tune(), epochs = tune()) %>% #O sea, las unidades de la 
+  #capa oculta y el número de iteraciones.
+  set_mode("regression") %>%
+  set_engine("nnet", trace = 0)
+
+#Se define el workflow con estos dos objetos.
+Tuning_workflow = workflow() %>%
+  add_recipe(Receta) %>%
+  add_model(Tuning)
+
+#Siguiente, la grilla con los párametros que vamos a calibrar.
+Grilla_nnet = crossing(hidden_units = seq(from= 5, to=6, by = 1),
+  epochs =  seq(from= 300, to=400, by = 100))
+
+#Ahora sí, ajustamos los párametros.
+Nnet_parametros = tune_grid(Tuning_workflow, resamples = CV_bloques, 
+                            grid = Grilla_nnet, metrics = metric_set(mae))
+
+#Cuáles son los mejores hiperpárametros
+Best_tune = select_best(Nnet_parametros, metric = "mae")
+
+#Ahora que tenemos los hiperpárametros óptimos, podemos pasar a obtener la 
+#estimación puntual de la red neuronal.
+Estimacion_nnet = fit(finalize_workflow(Tuning_workflow, Best_tune),
+                      data = train_db)
+
+
+#Para sacar el MAE dentro de muestra y de paso sacar una predicción. 
+MAE_NNet = augment(Estimacion_nnet, new_data = train_db) %>%
+  mae(truth = price, estimate = .pred)
+
 # MAE e hiperpárametros óptimos. -----------------------------------------------------
 #Se guardan los MAE del precio de venta.
-
-#Para el RF toca a pie
-#aux = (Pred_aux$train_final.Ingreso_disponible-Pred_aux$Ingreso_pred_RF)^2 |>
-#  mean() |> sqrt()
-
-MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF"),
+MAE = data.frame("Modelo" = c("Regresión", "Enet", "Árbol_CP", "RF", "NNet"),
                   "MAE" = c(lm_normal_MAE/1e6, 
                             Enet_matrix[1,"MAE"], 
-                            MAE_tree, MAE_RF))
+                            MAE_tree, MAE_RF,
+                            MAE_NNet))
 
 
 xtable(MAE)
@@ -245,9 +284,12 @@ Hiperparametros = data.frame("Modelo" = c("Enet","Árbol_CP", "RF_CV"),
 xtable(Hiperparametros)
 saveRDS(Hiperparametros, paste0(path,"Stores/Hiperparametros.rds"))
 
-#Por simplicidad para el latex mando los del boosting aparte.
+#Por simplicidad para el latex mando los del boosting y del NNET aparte.
 Boosting = data.frame(Arbol_boost$bestTune)
 saveRDS(Boosting, paste0(path,"Stores/Hiperparametros_boosting.rds"))
+
+saveRDS(data.frame(Best_tune)[,1:2], 
+        paste0(path,"Stores/Hiperparametros_NNET.rds"))
 
 
 
