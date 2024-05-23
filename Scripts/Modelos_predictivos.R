@@ -239,8 +239,8 @@ Tuning_workflow = workflow() %>%
   add_model(Tuning)
 
 #Siguiente, la grilla con los párametros que vamos a calibrar.
-Grilla_nnet = crossing(hidden_units = seq(from= 5, to=6, by = 1),
-  epochs =  seq(from= 300, to=400, by = 100))
+Grilla_nnet = crossing(hidden_units = seq(from= 10, to=30, length.out = 20),
+  epochs =  seq(from= 200, to=400, length.out = 30))
 
 #Ahora sí, ajustamos los párametros.
 Nnet_parametros = tune_grid(Tuning_workflow, resamples = CV_bloques, 

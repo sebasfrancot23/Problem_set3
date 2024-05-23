@@ -7,7 +7,7 @@
 
 # Preparación del ambiente ------------------------------------------------
 rm(list=setdiff(ls(), c("lm_normal", "Carpinteria", "Elastic_net", "tree_cp",
-                        "RF_CV", "Arbol_boost")))
+                        "RF_CV", "Arbol_boost", "Estimacion_nnet")))
 
 libraries = c("tidyverse", "stats", "stargazer", "caret", "glmnet", "xtable",
               "rpart.plot") 
@@ -76,7 +76,12 @@ write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_boosting.cs
           row.names = F, sep = ",")
 
 
-
+#Para el NNET.
+Predicciones = data.frame("property_id" = test_db$property_id,
+                          "price" = augment(Estimacion_nnet, new_data = test_db)[[".pred"]])
+#Se exportan al CSV.
+write.csv(Predicciones, paste0(path, "Stores/Predicciones/regression_NNET.csv"),
+          row.names = F, sep = ",")
 
 
 
